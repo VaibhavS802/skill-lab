@@ -1,0 +1,278 @@
+<title>Skill Novelty Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a working bench. Paste on the left, score atoms in the middle, live 2x2 summary pinned on the right. */
+:root {
+  --bg: #F3F5F4; --panel: #FFFFFF; --line: #D6DEDD; --fg: #0F1E26; --soft: #4F5E65;
+  --blue: #2257B8; --blue-fg: #F3F5F4; --orange: #E58A2E; --grey: #E3E9E8; --miss: #0F1E26; --miss-fg: #F3F5F4;
+  --sans: 'IBM Plex Sans', Arial, sans-serif; --mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F1E26; --panel: #162A34; --line: #2A4250; --fg: #EAF0EF; --soft: #A9BAC0;
+  --blue: #5B8FE6; --blue-fg: #0F1E26; --orange: #E89A4A; --grey: #2A4250; --miss: #EAF0EF; --miss-fg: #0F1E26; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0F1E26; --panel: #162A34; --line: #2A4250; --fg: #EAF0EF; --soft: #A9BAC0;
+  --blue: #5B8FE6; --blue-fg: #0F1E26; --orange: #E89A4A; --grey: #2A4250; --miss: #EAF0EF; --miss-fg: #0F1E26; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--blue); }
+h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+header p { margin: 0; color: var(--soft); max-width: 68ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .side { position: static !important; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; min-width: 0; }
+h2 { font-size: 17px; margin: 0 0 4px; }
+.hint { color: var(--soft); font-size: 13px; margin: 0 0 12px; }
+textarea { width: 100%; box-sizing: border-box; min-height: 180px; font-family: var(--mono); font-size: 13px; line-height: 1.5;
+  background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; resize: vertical; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+button { font: 600 13px var(--sans); border-radius: 8px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--fg); }
+button.primary { background: var(--blue); color: var(--blue-fg); border-color: var(--blue); }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.note { font-size: 12px; color: var(--soft); }
+.atoms { display: flex; flex-direction: column; margin-top: 20px; border-top: 1px solid var(--line); }
+.atom { display: grid; grid-template-columns: 6px minmax(0, 1fr) auto auto; gap: 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.stripe { align-self: stretch; border-radius: 3px; background: var(--grey); }
+.atom[data-o="added"] .stripe { background: var(--blue); }
+.atom[data-o="degraded"] .stripe { background: var(--orange); }
+.atom[data-o="missing"] .stripe { background: var(--miss); }
+.txt { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+.tok { font-family: var(--mono); font-size: 11px; color: var(--soft); }
+.arm { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.arm span { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--soft); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 4px 9px; font-size: 12px; background: transparent; color: var(--soft); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+@media (max-width: 560px) { .atom { grid-template-columns: 6px minmax(0, 1fr); } .atom .arm { grid-column: 2; flex-direction: row; gap: 8px; justify-self: start; } }
+.side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: flex; flex-direction: column; gap: 16px; }
+.quad { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.q { border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+.q b { font-family: var(--mono); font-size: 12px; }
+.q .n { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.q small { font-size: 11px; opacity: .85; }
+.q-red { background: var(--grey); color: var(--fg); }
+.q-deg { background: var(--orange); color: #0F1E26; }
+.q-add { background: var(--blue); color: var(--blue-fg); }
+.q-miss { background: var(--miss); color: var(--miss-fg); }
+.axes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: var(--soft); text-align: center; margin-bottom: 4px; }
+.stat { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.stat strong { font-variant-numeric: tabular-nums; }
+.verdict { font-size: 14px; margin: 8px 0 0; }
+.example { display: inline-block; font: 600 11px var(--mono); padding: 2px 8px; border-radius: 4px; background: var(--grey); color: var(--fg); }
+.legend { font-size: 13px; color: var(--soft); display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.legend b { font-family: var(--mono); color: var(--fg); }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Agent skills · Novelty check</span>
+    <h1>Skill Novelty Lab</h1>
+    <p>Paste a SKILL.md. Each bullet becomes an atom. Ask the model about each atom with and without the skill, record whether it answered right, and see which lines teach something new and which only cost tokens.</p>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>1. Paste the skill</h2>
+      <p class="hint">Bullets and plain sentences become atoms. Frontmatter and headings are skipped.</p>
+      <label for="src" class="note">SKILL.md text</label>
+      <textarea id="src" spellcheck="false"></textarea>
+      <div class="row">
+        <button class="primary" id="split">Split into atoms</button>
+        <button id="loadEx">Load the Acme example</button>
+        <span class="note" id="status"></span>
+      </div>
+
+      <h2 style="margin-top:28px">2. Score each atom</h2>
+      <p class="hint">For each atom, ask the model a question whose answer is that fact. Mark whether it answered correctly, first without the skill, then with it. Use strict grading: exact values must match.</p>
+      <div class="atoms" id="atoms"></div>
+    </div>
+
+    <aside class="side">
+      <div class="panel">
+        <h2>Four outcomes</h2>
+        <p class="hint" id="exTag"></p>
+        <div class="axes"><span>With skill: right</span><span>With skill: wrong</span></div>
+        <div class="quad">
+          <div class="q q-red"><b>redundant</b><span class="n" id="n-redundant">0</span><small>right both ways · cut</small></div>
+          <div class="q q-deg"><b>degraded</b><span class="n" id="n-degraded">0</span><small>skill hurts · fix first</small></div>
+          <div class="q q-add"><b>added</b><span class="n" id="n-added">0</span><small>new knowledge · protect</small></div>
+          <div class="q q-miss"><b>still_missing</b><span class="n" id="n-missing">0</span><small>wrong both ways · rephrase</small></div>
+        </div>
+        <div class="axes" style="margin-top:4px"><span>Top row: right without skill</span><span>Bottom row: wrong without skill</span></div>
+      </div>
+      <div class="panel">
+        <h2>Token budget</h2>
+        <div class="stat"><span>Skill size (est.)</span><strong id="t-all">0</strong></div>
+        <div class="stat"><span>In redundant atoms</span><strong id="t-red">0</strong></div>
+        <div class="stat"><span>Share you could cut</span><strong id="t-pct">0%</strong></div>
+        <p class="verdict" id="verdict"></p>
+        <p class="note">Tokens estimated at 4 characters each. Confirm any cut by re-running your task evals.</p>
+        <div class="row"><button id="copy">Copy report</button><span class="note" id="copyMsg"></span></div>
+      </div>
+      <div class="panel">
+        <ul class="legend">
+          <li><b>added</b> wrong without the skill, right with it</li>
+          <li><b>redundant</b> right both ways</li>
+          <li><b>degraded</b> right without, wrong with</li>
+          <li><b>still_missing</b> wrong both ways</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const EXAMPLE = `---
+name: acme-tickets
+description: Triage and format support tickets for Acme Corp.
+---
+
+# Acme Ticket Triage
+
+## Ticket ID format
+- IDs look like \`ACM-<TEAM>-<YYWW>-<NNN>\`, e.g. \`ACM-PAY-2647-012\`.
+- \`<YYWW>\` is the 2-digit year + ISO week number. \`<NNN>\` resets every week.
+- Team codes: PAY (payments), IDN (identity/login), SHP (shipping), GEN (everything else).
+
+## Priority codes
+- RED: money is being lost or customers cannot log in. Respond within 15 minutes.
+- AMBER: a feature is broken but a workaround exists. Respond within 4 hours.
+- GREEN: cosmetic issues, questions, feature requests. Respond within 3 business days.
+- Any ticket mentioning a customer with more than 500 seats is bumped up one color.
+
+## Escalation
+- RED tickets page the on-call lead via #acme-war-room, never by email.
+- If a RED ticket has no reply after 30 minutes, escalate to the Duty Director.
+- Tickets are never closed on a Friday after 15:00; set status to PARKED until Monday.
+
+## Writing the ticket
+- Be clear and concise.
+- Describe the problem, steps to reproduce, and expected vs. actual behavior.
+- Be polite and professional with customers.
+- Summary line must start with the team code in brackets, e.g. [PAY] Refunds stuck.`;
+// Expected outcomes for the toy skill, keyed by a phrase in the atom: [without, with]
+const EX_GUESS = [["500 seats", [0, 0]], ["clear and concise", [1, 1]], ["steps to reproduce", [1, 1]], ["polite", [1, 1]]];
+
+let atoms = [];   // {text, wo: null|0|1, w: null|0|1}
+let isExample = false;
+const $ = id => document.getElementById(id);
+const tokens = s => Math.ceil(s.length / 4);
+
+function outcome(a) {
+  if (a.wo === null || a.w === null) return "";
+  if (a.wo && a.w) return "redundant";
+  if (a.wo && !a.w) return "degraded";
+  if (!a.wo && a.w) return "added";
+  return "missing";
+}
+
+function split(text) {
+  let body = text.replace(/^---[\s\S]*?---\s*/, "");
+  return body.split(/\r?\n/).map(l => l.trim())
+    .filter(l => l && !l.startsWith("#") && !/^[-*]\s*$/.test(l))
+    .map(l => l.replace(/^[-*]\s+|^\d+\.\s+/, ""))
+    .map(text => ({ text, wo: null, w: null }));
+}
+
+function render() {
+  const box = $("atoms");
+  box.innerHTML = "";
+  atoms.forEach((a, i) => {
+    const row = document.createElement("div");
+    row.className = "atom";
+    row.dataset.o = outcome(a);
+    row.innerHTML = `<div class="stripe"></div>
+      <div><div class="txt"></div><div class="tok">${tokens(a.text)} tokens${row.dataset.o ? " · " + (row.dataset.o === "missing" ? "still_missing" : row.dataset.o) : ""}</div></div>
+      ${arm("Without", i, "wo", a.wo)}${arm("With", i, "w", a.w)}`;
+    row.querySelector(".txt").textContent = a.text;
+    box.appendChild(row);
+  });
+  if (!atoms.length) box.innerHTML = '<p class="hint" style="padding:16px 0">No atoms yet. Paste a skill and choose “Split into atoms”, or load the Acme example.</p>';
+  summarize();
+  save();
+}
+
+function arm(label, i, key, v) {
+  const b = (val, txt) => `<button data-i="${i}" data-k="${key}" data-v="${val}" aria-pressed="${v === val}">${txt}</button>`;
+  return `<div class="arm"><span>${label}</span><div class="seg" role="group" aria-label="${label} skill, atom ${i + 1}">${b(1, "Right")}${b(0, "Wrong")}</div></div>`;
+}
+
+function summarize() {
+  const c = { added: 0, redundant: 0, degraded: 0, missing: 0 };
+  let all = 0, red = 0;
+  atoms.forEach(a => { const o = outcome(a); all += tokens(a.text); if (o) c[o]++; if (o === "redundant") red += tokens(a.text); });
+  for (const k in c) $("n-" + k).textContent = c[k];
+  $("t-all").textContent = all;
+  $("t-red").textContent = red;
+  $("t-pct").textContent = all ? Math.round(100 * red / all) + "%" : "0%";
+  const scored = atoms.filter(a => outcome(a)).length;
+  let v = "";
+  if (!atoms.length) v = "";
+  else if (scored < atoms.length) v = `${scored} of ${atoms.length} atoms scored.`;
+  else if (c.degraded) v = `Fix the ${c.degraded} degraded atom${c.degraded > 1 ? "s" : ""} first: the skill makes the model worse there.`;
+  else if (c.missing) v = `Rephrase ${c.missing} still-missing atom${c.missing > 1 ? "s" : ""}, then try cutting the redundant ones.`;
+  else v = `Try cutting the ${c.redundant} redundant atom${c.redundant === 1 ? "" : "s"} and re-run your evals.`;
+  $("verdict").textContent = v;
+  $("exTag").innerHTML = isExample ? '<span class="example">Example predictions, not measured</span>' : "Updates as you score.";
+}
+
+function report() {
+  const lines = ["# Skill novelty report", ""];
+  const c = { added: [], redundant: [], degraded: [], missing: [], unscored: [] };
+  atoms.forEach(a => (c[outcome(a) || "unscored"]).push(a.text));
+  const names = { added: "Added (protect)", degraded: "Degraded (fix first)", missing: "Still missing (rephrase)", redundant: "Redundant (cut candidates)", unscored: "Not scored" };
+  for (const k of ["degraded", "missing", "added", "redundant", "unscored"]) {
+    if (!c[k].length) continue;
+    lines.push(`## ${names[k]}: ${c[k].length}`, ...c[k].map(t => "- " + t), "");
+  }
+  lines.push(`Redundant tokens: ${$("t-red").textContent} of ${$("t-all").textContent} (${$("t-pct").textContent}).`);
+  if (isExample) lines.push("", "Note: example predictions, not measured results.");
+  return lines.join("\n");
+}
+
+function save() { try { localStorage.setItem("novelty-lab", JSON.stringify({ src: $("src").value, atoms, isExample })); } catch (e) {} }
+function loadExample() {
+  $("src").value = EXAMPLE;
+  atoms = split(EXAMPLE).map(a => {
+    const g = EX_GUESS.find(([k]) => a.text.includes(k));
+    const [wo, w] = g ? g[1] : [0, 1];
+    return { ...a, wo, w };
+  });
+  isExample = true;
+  $("status").textContent = `${atoms.length} atoms, pre-scored with example predictions.`;
+  render();
+}
+
+$("atoms").addEventListener("click", e => {
+  const b = e.target.closest("button[data-i]");
+  if (!b) return;
+  const a = atoms[+b.dataset.i];
+  const val = +b.dataset.v;
+  a[b.dataset.k] = a[b.dataset.k] === val ? null : val;
+  render();
+});
+$("split").addEventListener("click", () => {
+  atoms = split($("src").value);
+  isExample = false;
+  $("status").textContent = atoms.length ? `${atoms.length} atoms found.` : "No atoms found. Check that the text has bullets or sentences.";
+  render();
+});
+$("loadEx").addEventListener("click", loadExample);
+$("src").addEventListener("input", save);
+$("copy").addEventListener("click", () => {
+  const text = report();
+  navigator.clipboard.writeText(text).then(() => { $("copyMsg").textContent = "Copied as Markdown."; })
+    .catch(() => { $("src").value = text; $("src").select(); $("copyMsg").textContent = "Copy blocked. Report placed in the text box, selected."; });
+});
+
+(function start() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem("novelty-lab") || "null"); } catch (e) {}
+  if (saved && saved.atoms && saved.atoms.length) {
+    $("src").value = saved.src || ""; atoms = saved.atoms; isExample = !!saved.isExample; render();
+  } else loadExample();
+})();
+</script>
